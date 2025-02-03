@@ -1,1 +1,7 @@
-# DeepSeek-TS
+# DeepSeek-TS: A State-Space Enhanced Framework for Multi-Product Time Series Forecasting
+Integrating Extended Multi-Head Latent Attention with Mamba-Style State Dynamics and Group Relative Policy Optimization for Robust Sales Prediction
+I was impressed by DeepSeek's tech - its efficient Multi-Head Latent Attention (MLA) and Group Relative Policy Optimization (GRPO) techniques got me thinking about how to apply them to multi-product time series forecasting. In our approach, we extend MLA into what we call MLA-Mamba, making it evolve dynamically over time for forecasting tasks, while GRPO fine-tunes our predictions based on real-time feedback.
+Simply put, MLA compresses and extracts key features from sales data. We take it a step further by letting these features evolve through a state-space model with non-linear activations - kind of like giving our model a memory that adapts to trends, just like a sales team adjusts strategies during market surges.
+Alongside this, GRPO adds a smart decision-making process that continually evaluates and refines predictions against a baseline, much like a manager tweaking forecasts on the fly. This dynamic method helps our model keep up with sudden changes in sales patterns.
+We compare our method with classical ARMA models and modern GRU-based networks. While ARMA works well for linear trends and GRUs capture temporal dependencies, our DeepSeek-TS framework shines by modeling complex inter-product relationships and adapting to non-linear dynamics, leading to more accurate and robust forecasts.
+In the following sections, we break down the technical details of our extended MLA (MLA-Mamba) and GRPO frameworks, and show how they work together to enhance multi-product time series forecasting.
