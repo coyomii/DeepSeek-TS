@@ -10,11 +10,11 @@ from sklearn.preprocessing import StandardScaler
 from statsmodels.tsa.arima.model import ARIMA
 
 ## load data
-df = pd.read_csv("sales_data.csv")
+df = pd.read_csv(r"data\sales_data.csv")
 
-df.plot(x="date", y=["product1_sales", "product2_sales", "product3_sales", "product4_sales", "product5_sales"], figsize=(12, 6))
-plt.title("Simulated Sales Data for 5 Products")
-plt.show()
+# df.plot(x="date", y=["product1_sales", "product2_sales", "product3_sales", "product4_sales", "product5_sales"], figsize=(12, 6))
+# plt.title("Simulated Sales Data for 5 Products")
+# plt.show()
 
 # -------------------------------
 #  Data Preparation for Time Series Forecasting with Normalization
@@ -195,7 +195,7 @@ def evaluate_arma(df, input_window=30, forecast_horizon=5, train_ratio=0.8):
 # -------------------------------
 def main():
     # Use generated sales data
-    df = generate_realistic_sales_data(n_rows=600, seed=42)
+    df = pd.read_csv(r"data\sales_data.csv")
     
     # Prepare out-of-time (chronological) dataloaders (first 80% for training, remaining for validation)
     train_loader, val_loader = prepare_dataloaders(df, input_window=30, forecast_horizon=5, batch_size=32, train_ratio=0.8)
