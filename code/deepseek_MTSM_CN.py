@@ -1,14 +1,17 @@
-import numpy as np 
+from datetime import datetime, timedelta
+
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
-from datetime import datetime, timedelta
-import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from statsmodels.tsa.arima.model import ARIMA
+from torch.utils.data import DataLoader, Dataset
 
+plt.rcParams['font.sans-serif'] = ['SimHei']  # 正常显示中文
+plt.rcParams['axes.unicode_minus'] = False
 
 df = pd.read_csv(r"data\sales_data.csv")
 
@@ -268,7 +271,9 @@ def validate_model(model, dataloader, device, dataset_obj, debug=False):
         print("Prediction range:", np.min(all_preds_orig), np.max(all_preds_orig))
         print("Target range:", np.min(all_targets_orig), np.max(all_targets_orig))
     mape = np.mean(np.abs((all_targets_orig - all_preds_orig) / (all_targets_orig + 1e-6))) * 100
-    return mape
+    
+    # 返回预测值和实际值
+    return mape, all_preds_orig, all_targets_orig
 
 def validate_simple_model(model, dataloader, device, dataset_obj, debug=False):
     model.eval()
@@ -291,7 +296,8 @@ def validate_simple_model(model, dataloader, device, dataset_obj, debug=False):
         print("Simple GRU Prediction range:", np.min(all_preds_orig), np.max(all_preds_orig))
         print("Simple GRU Target range:", np.min(all_targets_orig), np.max(all_targets_orig))
     mape = np.mean(np.abs((all_targets_orig - all_preds_orig) / (all_targets_orig + 1e-6))) * 100
-    return mape
+
+    return mape, all_preds_orig, all_targets_orig
 
 
 # -------------------------------
@@ -300,6 +306,7 @@ def validate_simple_model(model, dataloader, device, dataset_obj, debug=False):
 def main():
     # 读取生成的销售数据
     df = pd.read_csv(r"data\sales_data.csv")
+    
     
     # 准备按时间顺序切分的数据加载器（前80%用于训练，剩余部分用于验证）
     train_loader, val_loader = prepare_dataloaders(df, input_window=30, forecast_horizon=5, batch_size=32, train_ratio=0.8)
@@ -329,13 +336,26 @@ def main():
     n_epochs = 22
 
     print("正在训练GRPO启发的预测模型...")
+    
+    # 创建子图
+    fig, axes = plt.subplots(3, 1, figsize=(20, 18))  # 创建3行1列的子图，调整大小
+    
     # 训练GRPO模型
     for epoch in range(n_epochs):
         train_loss = train_model_full(model, train_loader, optimizer, device, grad_clip=1.0)
-        mape = validate_model(model, val_loader, device, dataset_obj, debug=True)
+        mape, preds, targets = validate_model(model, val_loader, device, dataset_obj, debug=True)
         scheduler.step()
         print(f"Epoch {epoch+1}/{n_epochs} - GRPO模型训练损失: {train_loss:.4f}, MAPE: {mape:.2f}%")
-    
+        
+        # 绘制预测值与实际值的对比图
+        if epoch == n_epochs - 1:  # 在最后一个epoch时绘图
+            axes[0].plot(targets[:], label='实际值', color='blue')  # 取前100个样本做示范
+            axes[0].plot(preds[:], label='预测值', color='red', linestyle='--')  # 预测值为红色虚线
+            axes[0].set_title("GRPO模型 - 实际值与预测值对比")
+            axes[0].set_xlabel("样本索引")
+            axes[0].set_ylabel("销售额")
+            axes[0].legend()
+
     # -------------------------------
     # 使用ARMA进行预测并进行比较
     # -------------------------------
@@ -355,10 +375,19 @@ def main():
     n_epochs_simple = 22
     for epoch in range(n_epochs_simple):
         train_loss_simple = train_simple_model(simple_model, train_loader, optimizer_simple, device, grad_clip=1.0)
-        simple_mape = validate_simple_model(simple_model, val_loader, device, dataset_obj, debug=True)
+        simple_mape, simple_preds, simple_targets = validate_simple_model(simple_model, val_loader, device, dataset_obj, debug=True)
         scheduler_simple.step()
         print(f"Epoch {epoch+1}/{n_epochs_simple} - 简单GRU模型训练损失: {train_loss_simple:.4f}, MAPE: {simple_mape:.2f}%")
-    
+        
+        # 绘制预测值与实际值的对比图
+        if epoch == n_epochs_simple - 1:  # 在最后一个epoch时绘图
+            axes[1].plot(simple_targets[:], label='实际值', color='blue')  # 取前100个样本做示范
+            axes[1].plot(simple_preds[:], label='预测值', color='red', linestyle='--')  # 预测值为红色虚线
+            axes[1].set_title("简单GRU模型 - 实际值与预测值对比")
+            axes[1].set_xlabel("样本索引")
+            axes[1].set_ylabel("销售额")
+            axes[1].legend()
+
     # -------------------------------
     # 训练带扩展MLA机制的GRPO模型
     # -------------------------------
@@ -370,12 +399,24 @@ def main():
     n_epochs_extended = 22
     for epoch in range(n_epochs_extended):
         train_loss_extended = train_model_full(model_extended, train_loader, optimizer_extended, device, grad_clip=1.0)
-        mape_extended = validate_model(model_extended, val_loader, device, dataset_obj, debug=True)
+        mape_extended, preds_extended, targets_extended = validate_model(model_extended, val_loader, device, dataset_obj, debug=True)
         scheduler_extended.step()
         print(f"Epoch {epoch+1}/{n_epochs_extended} - 扩展MLA模型训练损失: {train_loss_extended:.4f}, MAPE: {mape_extended:.2f}%")
-    
+        
+        # 绘制预测值与实际值的对比图
+        if epoch == n_epochs_extended - 1:  # 在最后一个epoch时绘图
+            axes[2].plot(targets_extended[:], label='实际值', color='blue')  # 取前100个样本做示范
+            axes[2].plot(preds_extended[:], label='预测值', color='red', linestyle='--')  # 预测值为红色虚线
+            axes[2].set_title("扩展MLA模型 - 实际值与预测值对比")
+            axes[2].set_xlabel("样本索引")
+            axes[2].set_ylabel("销售额")
+            axes[2].legend()
+
+    # 调整布局
+    plt.tight_layout()
+    plt.show()
+
 if __name__ == "__main__":
     main()
-
 
 
